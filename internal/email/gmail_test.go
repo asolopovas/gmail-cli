@@ -56,3 +56,20 @@ func TestFromGmailConvertsHTMLFallback(t *testing.T) {
 		t.Fatalf("html fallback body = %q", msg.BodyText)
 	}
 }
+
+func TestFromGmailRemovesInvisibleEmailPadding(t *testing.T) {
+	t.Parallel()
+	htmlData := base64.RawURLEncoding.EncodeToString([]byte("<p>Visible</p><div>\u034f\u200c \u200b\u2060\ufeff</div><p>Next</p>"))
+	msg, err := FromGmail(&gmail.Message{Payload: &gmail.MessagePart{MimeType: "text/html", Body: &gmail.MessagePartBody{Data: htmlData}}})
+	if err != nil {
+		t.Fatalf("FromGmail returned error: %v", err)
+	}
+	for _, hidden := range []string{"\u034f", "\u200c", "\u200b", "\u2060", "\ufeff"} {
+		if strings.Contains(msg.BodyText, hidden) {
+			t.Fatalf("body still contains hidden padding %q: %q", hidden, msg.BodyText)
+		}
+	}
+	if !strings.Contains(msg.BodyText, "Visible") || !strings.Contains(msg.BodyText, "Next") {
+		t.Fatalf("body lost visible text: %q", msg.BodyText)
+	}
+}

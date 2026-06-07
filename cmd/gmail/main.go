@@ -1,11 +1,7 @@
 package main
 
-import (
-	"os"
-
-	"github.com/andrius/gmail-cli/internal/app"
-)
+import "os"
 
 func main() {
-	os.Exit(app.Main(os.Args[1:]))
+	os.Exit(Main(os.Args[1:]))
 }

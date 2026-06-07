@@ -17,6 +17,10 @@ token.json
 *.token.json
 .env
 .env.*
+
+# Project-local secret drop zone for OAuth credentials/tokens.
+/secrets/
+
 exports/
 .gmail-cli/
 

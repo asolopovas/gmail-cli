@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 
 	"google.golang.org/api/gmail/v1"
 )
@@ -131,6 +132,7 @@ func htmlToText(value string) string {
 
 func cleanBody(value string) string {
 	value = strings.ReplaceAll(value, "\u00a0", " ")
+	value = strings.Map(removeEmailNoiseRune, value)
 	lines := strings.Split(value, "\n")
 	for i, line := range lines {
 		lines[i] = strings.TrimRight(spacesRE.ReplaceAllString(line, " "), " ")
@@ -138,4 +140,15 @@ func cleanBody(value string) string {
 	value = strings.TrimSpace(strings.Join(lines, "\n"))
 	value = blankLinesRE.ReplaceAllString(value, "\n\n")
 	return value
+}
+
+func removeEmailNoiseRune(r rune) rune {
+	switch r {
+	case '\u034f', '\u00ad', '\u200b', '\u200c', '\u200d', '\u2060', '\ufeff':
+		return -1
+	}
+	if unicode.Is(unicode.Cf, r) {
+		return -1
+	}
+	return r
 }

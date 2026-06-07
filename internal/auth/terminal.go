@@ -33,7 +33,7 @@ func terminalScript(exe string, args []string) string {
 status=$?
 echo
 if [ "$status" -eq 0 ]; then
-  echo "Gmail authorization complete. Token stored in the OS keyring."
+  echo "Gmail authorization complete. Token stored in the OS keyring or ignored secrets fallback."
 else
   echo "Gmail authorization failed with exit code $status."
 fi
@@ -80,12 +80,48 @@ func launchWindowsAuthTerminal(exe string, args []string) error {
 	if exe == "" {
 		return errors.New("executable path is empty")
 	}
-	cmdArgs := append([]string{"/K", quoteWindows(exe)}, args...)
-	startArgs := append([]string{"/C", "start", "Gmail authorization", "cmd"}, cmdArgs...)
-	if err := exec.Command("cmd", startArgs...).Start(); err != nil {
+	script, err := windowsAuthScript(exe, args)
+	if err != nil {
+		return err
+	}
+	// Start the batch file directly instead of nesting a quoted executable under
+	// `cmd /K`; Windows cmd quote parsing otherwise treats quoted executable
+	// paths as literal command names on some shells.
+	if err := exec.Command("cmd", "/C", "start", "Gmail authorization", script).Start(); err != nil {
 		return fmt.Errorf("start Windows terminal: %w", err)
 	}
 	return nil
+}
+
+func windowsAuthScript(exe string, args []string) (string, error) {
+	file, err := os.CreateTemp("", "gmail-cli-auth-*.cmd")
+	if err != nil {
+		return "", fmt.Errorf("create Windows auth script: %w", err)
+	}
+	path := file.Name()
+	argv := append([]string{exe}, args...)
+	script := `@echo off
+` + windowsBatchJoin(argv) + `
+set status=%ERRORLEVEL%
+echo.
+if %status% EQU 0 (
+  echo Gmail authorization complete. Token stored in the OS keyring or ignored secrets fallback.
+) else (
+  echo Gmail authorization failed with exit code %status%.
+)
+echo Press any key to close this authorization window.
+pause >nul
+del "%~f0" >nul 2>nul
+exit /b %status%
+`
+	if _, err := file.WriteString(script); err != nil {
+		_ = file.Close()
+		return "", fmt.Errorf("write Windows auth script %q: %w", path, err)
+	}
+	if err := file.Close(); err != nil {
+		return "", fmt.Errorf("close Windows auth script %q: %w", path, err)
+	}
+	return path, nil
 }
 
 func shellJoin(args []string) string {
@@ -109,6 +145,14 @@ func appleScriptQuote(value string) string {
 	return "\"" + value + "\""
 }
 
-func quoteWindows(value string) string {
-	return `"` + strings.ReplaceAll(value, `"`, `\"`) + `"`
+func windowsBatchJoin(args []string) string {
+	quoted := make([]string, 0, len(args))
+	for _, arg := range args {
+		quoted = append(quoted, quoteWindowsBatch(arg))
+	}
+	return strings.Join(quoted, " ")
+}
+
+func quoteWindowsBatch(value string) string {
+	return `"` + strings.ReplaceAll(value, `"`, `""`) + `"`
 }

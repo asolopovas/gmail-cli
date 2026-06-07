@@ -16,16 +16,17 @@ Create a secure, maintainable Go terminal Gmail client for searching, reading, a
 ## Acceptance criteria
 
 - `gmail auth [client-json]` stores OAuth client config, opens a separate authorization terminal, and performs PKCE loopback auth.
-- `gmail s [query]` lists matching messages with date, sender, subject, attachment marker, and ID.
-- `gmail r [query]` renders matching messages as clean terminal text.
-- `gmail d [query]` writes oldest-to-newest message folders named with `yy-mm-dd hhmmss` and includes `email.txt` plus attachments.
+- `gmail find [query]` lists matching messages with date, sender, subject, attachment marker, and ID.
+- `gmail show [query]` renders matching messages as clean terminal text.
+- `gmail export [query]` writes oldest-to-newest message folders named with `yy-mm-dd hhmmss` and includes `email.txt` plus attachments.
+- Human phrases such as `emails from alice@example.com about invoice newer than 30d` are normalized to Gmail search syntax.
 - Tokens are stored through the OS keyring, not plaintext token files.
 - Filenames derived from message subjects and attachments are sanitized and constrained.
 - `go test ./...`, `go vet ./...`, and `go build ./cmd/gmail` pass.
 
 ## Pending work
 
-- Manual OAuth/Gmail smoke test with a real Google account and downloaded Desktop OAuth client JSON.
+- Manual OAuth/Gmail smoke test with a real Google account and downloaded Desktop OAuth client JSON. OAuth client JSON is now expected under the git-ignored `secrets/` development drop zone.
 - Optional encrypted file-keyring fallback for headless Linux/CI environments.
 - Optional multi-account profiles if required by future users.
 
@@ -52,6 +53,12 @@ Create a secure, maintainable Go terminal Gmail client for searching, reading, a
 - `go vet ./...` passed.
 - `go build ./cmd/gmail` passed.
 - `./gmail help` prints the expected command contract.
+- Added `gmail doctor` credential preflight so E2E setup can distinguish missing OAuth client config from missing/unreadable keyring token.
+- Added `docs/e2e.md` with the manual Gmail OAuth smoke-test checklist.
+- Added fully git-ignored `secrets/` credential drop-zone support and app auto-detection for `secrets/client_secret*.json`.
+- Added ignored `secrets/gmail-token.json` fallback for environments where OS keyring writes fail.
+- Cleaned invisible email padding characters from HTML-derived message bodies after live E2E exposed noisy output.
+- Promoted intuitive Cobra commands (`find`, `show`, `export`) with flags, shell completions for PowerShell/fish/bash, and lightweight human phrase parsing while keeping terse aliases optional.
 
 ## Follow-up debt
 
