@@ -1,0 +1,30 @@
+# Normalize text files and keep repository line endings stable.
+* text=auto eol=lf
+
+# Go sources and project metadata.
+*.go text eol=lf diff=golang
+*.mod text eol=lf
+*.sum text eol=lf
+*.md text eol=lf diff=markdown
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.sh text eol=lf
+
+# Treat common generated/binary artifacts as binary.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.tgz binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary

@@ -1,20 +1,38 @@
 # Build outputs
 /bin/
 /dist/
+/build/
 /gmail
 /gmail-cli
+*.exe
+*.dll
+*.so
+*.dylib
 
-# Local secrets and exported mail
+# Local secrets, OAuth files, and exported mail
 credentials.json
+client_secret*.json
+oauth-client.json
 token.json
+*.token.json
+.env
+.env.*
 exports/
 .gmail-cli/
 
 # Go tooling
 coverage.out
+coverage.html
 *.test
+*.prof
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
 
 # OS/editor
 .DS_Store
+Thumbs.db
 .vscode/
 .idea/
