@@ -66,7 +66,7 @@ func TestHelpShowsSimpleWorkflow(t *testing.T) {
 		t.Fatalf("help returned error: %v", err)
 	}
 	text := out.String()
-	for _, want := range []string{"gmail auth [client-json]", "gmail find [flags] [what to find]", "gmail show [flags] [what to show]", "gmail export [flags] [what]", "gmail doctor", "gmail completion bash|fish|powershell", "--date VALUE", "search/list=find", "read/view=show"} {
+	for _, want := range []string{"NAME", "SYNOPSIS", "COMMANDS", "EXAMPLES", "auth        authorize", "find        list", "show        print", "export      export", "completion  generate", "--date accepts", "search/list=find", "read/view=show"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("help missing %q:\n%s", want, text)
 		}

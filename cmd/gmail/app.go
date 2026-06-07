@@ -78,11 +78,11 @@ func (r Runner) command() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Run: func(cmd *cobra.Command, args []string) {
-			printHelp(r.Stdout)
+			printManualHelp(r.Stdout, cmd)
 		},
 	}
 	root.SetHelpFunc(func(cmd *cobra.Command, args []string) {
-		printHelp(r.Stdout)
+		printManualHelp(r.Stdout, cmd)
 	})
 	root.PersistentFlags().BoolVar(&debug, "debug", false, "enable structured debug logs")
 
@@ -167,6 +167,11 @@ func (r Runner) command() *cobra.Command {
 
 	completionCmd := completionCommand(root, r.Stdout)
 	root.AddCommand(authCmd, findCmd, showCmd, exportCmd, doctorCmd, logoutCmd, completionCmd)
+	for _, child := range root.Commands() {
+		child.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+			printManualHelp(r.Stdout, cmd)
+		})
+	}
 	return root
 }
 
@@ -659,54 +664,109 @@ func humanDuration(value string) string {
 	}
 }
 
-func printHelp(w io.Writer) {
-	fmt.Fprint(w, `gmail - read and export Gmail as terminal-friendly text
+func printManualHelp(w io.Writer, cmd *cobra.Command) {
+	if cmd == nil || !cmd.HasParent() {
+		printRootManual(w)
+		return
+	}
+	switch cmd.Name() {
+	case "auth":
+		printCommandManual(w, "AUTH", "gmail auth [client-json] [--no-window]", "Authorize Gmail read-only access and save credentials.", cmd, []string{
+			"gmail auth",
+			"gmail auth secrets/client_secret_....json",
+			"gmail auth --no-window",
+		})
+	case "find":
+		printCommandManual(w, "FIND", "gmail find [flags] [what to find]", "List matching Gmail messages.", cmd, []string{
+			"gmail find --from alice@example.com --date 7d --subject invoice",
+			"gmail find emails from alice@example.com about invoice newer than 30d",
+			"gmail find --query 'from:alice@example.com newer_than:30d invoice'",
+		})
+	case "show":
+		printCommandManual(w, "SHOW", "gmail show [flags] [what to show]", "Print matching messages as terminal-friendly text.", cmd, []string{
+			"gmail show --unread --date today --number 1",
+			"gmail show emails from ebay last week",
+			"gmail show --query 'subject:(security alert) after:2026/01/01'",
+		})
+	case "export":
+		printCommandManual(w, "EXPORT", "gmail export [flags] [what to export]", "Export messages into folders containing email.txt and attachments.", cmd, []string{
+			"gmail export --attachments --date 30d --output exports",
+			"gmail export emails with attachments from alice@example.com to folder exports",
+			"gmail export --query 'has:attachment filename:pdf report' --output exports",
+		})
+	case "doctor":
+		printCommandManual(w, "DOCTOR", "gmail doctor", "Check OAuth client config and saved token status.", cmd, []string{"gmail doctor", "gmail status"})
+	case "logout":
+		printCommandManual(w, "LOGOUT", "gmail logout", "Delete the saved OAuth token.", cmd, []string{"gmail logout"})
+	case "completion":
+		printCommandManual(w, "COMPLETION", "gmail completion bash|fish|powershell", "Generate shell completion scripts.", cmd, []string{
+			"gmail completion powershell > gmail.ps1",
+			"gmail completion fish > gmail.fish",
+			"gmail completion bash > gmail.bash",
+		})
+	default:
+		printRootManual(w)
+	}
+}
 
-Usage:
-  gmail auth [client-json]             authorize Gmail read-only access
-  gmail find [flags] [what to find]     list matching emails
-  gmail show [flags] [what to show]     print matching emails as terminal text
-  gmail export [flags] [what]           export emails plus attachments into folders
-  gmail doctor                         check local OAuth client config and saved token
-  gmail completion bash|fish|powershell generate shell completions
+func printRootManual(w io.Writer) {
+	fmt.Fprint(w, `NAME
+  gmail - read and export Gmail as terminal-friendly text
 
-Aliases:
+SYNOPSIS
+  gmail COMMAND [FLAGS] [QUERY]
+
+COMMANDS
+  auth        authorize Gmail read-only access
+  find        list matching emails
+  show        print matching emails as clean terminal text
+  export      export emails plus attachments into folders
+  doctor      check local credentials
+  completion  generate bash, fish, or PowerShell completions
+  logout      delete saved OAuth token
+
+QUERY FLAGS
+  --from, --to, --subject, --date, --after, --before
+  --attachments, --unread, --starred, --important, --query
+  --date accepts today, yesterday, last-week, 7d, YYYY-MM-DD, or START..END.
+
+ALIASES
   login=auth, search/list=find, read/view=show, download/save=export, status=doctor
   Short aliases remain available: a, s, r, d.
 
-Useful flags for find/show/export:
-  -n, --number N         maximum messages
-      --from VALUE       sender email/name
-      --to VALUE         recipient email/name
-      --subject TEXT     subject text
-      --date VALUE       today, yesterday, last-week, 7d, YYYY-MM-DD, or START..END
-      --after DATE       messages after a date
-      --before DATE      messages before a date
-      --attachments      only messages with attachments
-      --unread           only unread messages
-      --query QUERY      raw Gmail search query
-  -o, --output DIR       export output directory
-
-Global flag: --debug
-
-Human examples:
-  gmail find emails from alice@example.com about invoice newer than 30d
-  gmail show unread emails from ebay last week
-  gmail export emails with attachments from alice@example.com to folder exports
-
-Flag examples:
-  gmail find --from alice@example.com --date 2026-06-01..2026-06-07 --subject invoice
-  gmail show --unread --date today
+EXAMPLES
+  gmail find --from alice@example.com --date 7d --subject invoice
+  gmail show --unread --date today --number 1
   gmail export --attachments --after 2026-06-01 --output exports
-
-Completion examples:
   gmail completion powershell > gmail.ps1
-  gmail completion fish > gmail.fish
-  gmail completion bash > gmail.bash
 
-Gmail search syntax still works:
-  gmail find -n 5 'from:alice@example.com newer_than:30d invoice'
-  gmail show 'subject:(security alert) after:2026/01/01'
-  gmail export -o exports 'has:attachment filename:pdf report'
+Use "gmail COMMAND --help" for command-specific help.
 `)
+}
+
+func printCommandManual(w io.Writer, name string, synopsis string, description string, cmd *cobra.Command, examples []string) {
+	fmt.Fprintf(w, "NAME\n  gmail %s - %s\n\n", strings.ToLower(name), description)
+	fmt.Fprintf(w, "SYNOPSIS\n  %s\n\n", synopsis)
+	if flagText := strings.TrimSpace(cmd.NonInheritedFlags().FlagUsagesWrapped(78)); flagText != "" {
+		fmt.Fprintf(w, "FLAGS\n%s\n\n", indentLines(flagText, "  "))
+	}
+	if inheritedText := strings.TrimSpace(cmd.InheritedFlags().FlagUsagesWrapped(78)); inheritedText != "" {
+		fmt.Fprintf(w, "GLOBAL FLAGS\n%s\n\n", indentLines(inheritedText, "  "))
+	}
+	if len(examples) > 0 {
+		fmt.Fprintln(w, "EXAMPLES")
+		for _, example := range examples {
+			fmt.Fprintf(w, "  %s\n", example)
+		}
+	}
+}
+
+func indentLines(value string, prefix string) string {
+	lines := strings.Split(value, "\n")
+	for i, line := range lines {
+		if strings.TrimSpace(line) != "" {
+			lines[i] = prefix + line
+		}
+	}
+	return strings.Join(lines, "\n")
 }
