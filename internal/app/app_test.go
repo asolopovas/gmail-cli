@@ -7,15 +7,16 @@ import (
 	"testing"
 )
 
-func TestAuthWithoutClientConfigDoesNotLaunchTerminal(t *testing.T) {
+func TestAuthWithoutClientConfigExplainsBrowserSetup(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
 	var out bytes.Buffer
 	runner := Runner{Stdout: &out, Stderr: &out}
-	err := runner.Run(context.Background(), []string{"auth"})
+	err := runner.Run(context.Background(), []string{"auth", "--no-window"})
 	if err == nil {
 		t.Fatal("expected auth without client config to fail")
 	}
-	if !strings.Contains(err.Error(), "gmail auth /path/to/credentials.json") {
+	if !strings.Contains(err.Error(), "first-time setup") || !strings.Contains(err.Error(), "gmail auth ~/Downloads/client_secret_") {
 		t.Fatalf("error should explain first setup command, got: %v", err)
 	}
 	if strings.Contains(out.String(), "Opened Gmail authorization") {

@@ -19,16 +19,19 @@ go build -o gmail ./cmd/gmail
 
 ## First-time setup
 
-1. Enable the Gmail API in Google Cloud.
-2. Create an OAuth client with application type **Desktop app**.
-3. Download the client JSON.
-4. Authorize locally:
+Run:
+
+```bash
+./gmail auth
+```
+
+On first use this opens the Google Cloud setup pages in your browser. Enable the Gmail API, create an OAuth client with application type **Desktop app**, download the JSON, then run:
 
 ```bash
 ./gmail auth ~/Downloads/client_secret_....json
 ```
 
-This opens a separate terminal window for the authorization flow, launches your browser, and automatically stores the token in the OS keyring after successful login.
+If the downloaded client JSON is already in `Downloads`, `Desktop`, or the current directory, `./gmail auth` auto-detects it. Authorization opens in a separate terminal window, launches your browser, and automatically stores the token in the OS keyring after successful login.
 
 Next runs can use the stored client config and keyring token:
 

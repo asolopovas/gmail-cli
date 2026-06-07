@@ -105,7 +105,22 @@ func (r Runner) auth(ctx context.Context, args []string, logger *slog.Logger, de
 		}
 		fmt.Fprintf(r.Stdout, "Stored OAuth client config at %s\n", paths.ClientFile)
 	} else if _, err := auth.LoadClientConfig(paths); err != nil {
-		return fmt.Errorf("no OAuth client config found; first download a Desktop app client JSON from Google Cloud, then run `gmail auth /path/to/credentials.json`: %w", err)
+		candidate, findErr := auth.FindClientConfigCandidate()
+		if findErr != nil {
+			return findErr
+		}
+		if candidate == "" {
+			if !*noWindow {
+				if openErr := auth.OpenOAuthSetupPages(); openErr != nil {
+					return fmt.Errorf("open Google OAuth setup pages: %w", openErr)
+				}
+			}
+			return fmt.Errorf("first-time setup opened in your browser. In Google Cloud: enable Gmail API, create an OAuth client with Application type 'Desktop app', download the JSON, then run `gmail auth ~/Downloads/client_secret_....json`")
+		}
+		if err := auth.StoreClientConfig(candidate, paths); err != nil {
+			return err
+		}
+		fmt.Fprintf(r.Stdout, "Found and stored OAuth client config from %s\n", candidate)
 	}
 	if !*noWindow {
 		childArgs := []string{"auth", "--no-window"}
