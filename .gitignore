@@ -1,0 +1,20 @@
+# Build outputs
+/bin/
+/dist/
+/gmail
+/gmail-cli
+
+# Local secrets and exported mail
+credentials.json
+token.json
+exports/
+.gmail-cli/
+
+# Go tooling
+coverage.out
+*.test
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
